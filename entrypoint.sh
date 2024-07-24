@@ -68,7 +68,7 @@ if [ -e "rel/overlays/bin/migrate" ]; then
   if flyctl status --app "$app"; then
     # Attach postgres cluster to the app if specified.
     if [ -n "$INPUT_POSTGRES" ]; then
-      flyctl postgres attach "$INPUT_POSTGRES" --app "$app" -y || true
+      flyctl postgres attach "$INPUT_POSTGRES" --app "$app" -y --database-user "$INPUT_USERNAME" --verbose || true
     else
       if flyctl status --app "$app_db"; then
         echo "$app_db DB already exists"
