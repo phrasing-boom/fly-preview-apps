@@ -38,3 +38,5 @@ inputs:
   ha:
     description: Create spare machines that increases app availability (default false)
     default: false
+  username:
+    description: The username to attach to the database with
