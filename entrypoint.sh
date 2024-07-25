@@ -22,10 +22,12 @@ app="${INPUT_NAME:-pr-$PR_NUMBER-$GITHUB_REPOSITORY_OWNER-$GITHUB_REPOSITORY_NAM
 app="${app//_/-}"
 app_db="${app}-db"
 app_db="${INPUT_POSTGRES:-${app_db}}"
-region="${INPUT_REGION:-${FLY_REGION:-iad}}"
+region="${INPUT_REGION:-${FLY_REGION:-ams}}"
 org="${INPUT_ORG:-${FLY_ORG:-personal}}"
 image="$INPUT_IMAGE"
 config="${INPUT_CONFIG:-fly.toml}"
+db_image="${INPUT_POSTGRES}"
+db_user="${INPUT_USERNAME}"
 
 if ! echo "$app" | grep "$PR_NUMBER"; then
   echo "For safety, this action requires the app's name to contain the PR number."
@@ -58,31 +60,27 @@ fi
 # Check if app exists,
 # if not, launch it, but don't deploy yet
 if ! flyctl status --app "$app"; then
+  echo "[FLYPREVIEWAPP] $app - creating application..."
   flyctl apps create "$app" --org "$org"
+else
+  echo "[FLYPREVIEWAPP] $app - application already exists"
 fi
 
-# look for "migrate" file in the app files
-# if it exists, the app probably needs DB.
-if [ -e "rel/overlays/bin/migrate" ]; then
-  # only create db if the app lauched successfully
-  if flyctl status --app "$app"; then
-    # Attach postgres cluster to the app if specified.
-    if [ -n "$INPUT_POSTGRES" ]; then
-      flyctl postgres attach "$INPUT_POSTGRES" --app "$app" -y --database-user "$INPUT_USERNAME" --database-name "$INPUT_POSTGRES" --verbose || true
-    else
-      if flyctl status --app "$app_db"; then
-        echo "$app_db DB already exists"
-      else
-        flyctl postgres create --name "$app_db" --org "$org" --region "$region" --vm-size shared-cpu-1x --initial-cluster-size 1 --volume-size 1
+# only create db if the app lauched successfully
+if flyctl status --app "$app"; then
+  # Check if db exists
+  if flyctl status --app "$app_db"; then
+    echo "[FLYPREVIEWAPP] $app_db - database already exists"
+  else
+    echo "[FLYPREVIEWAPP] $app_db - creating database... "
+    flyctl postgres create --name "$app_db" --image-ref "$db_image" --region "$region" --org "$org" --vm-size shared-cpu-1x --initial-cluster-size 1 --volume-size 4
+  fi
 
-        # attaching db to the app if it was created successfully
-        if flyctl postgres attach "$app_db" --app "$app" -y; then
-          echo "$app_db DB attached to $app"
-        else
-          echo "Error attaching $app_db to $app, attachments exist"
-        fi
-      fi
-    fi
+  # Always attach the build to the new database (this is often redundant)
+  if flyctl postgres attach "$app_db" --app "$app" --database-user "$db_user" --database-name "$app" -y --verbose; then
+    echo "[FLYPREVIEWAPP] $app_db - attached $db_user to $app"
+  else
+    echo "[FLYPREVIEWAPP] $app_db - failure at attach user $db_user to $app!"
   fi
 fi
 
@@ -103,7 +101,11 @@ fi
 
 # Import any required secrets
 if [ -n "$INPUT_SECRETS" ]; then
+  echo "[FLYPREVIEWAPP] secrets prior to import"
+  flyctl secrets list -a "$app"
   echo $INPUT_SECRETS | tr " " "\n" | flyctl secrets import --app "$app"
+  echo "[FLYPREVIEWAPP] secrets after import"
+  flyctl secrets list -a "$app"
 fi
 
 # Trigger the deploy of the new version.
