@@ -128,7 +128,7 @@ else
 fi
 
 # Restart the machine after deploy
-flyctl apps restart --app "$app"
+flyctl apps restart "$app"
 
 # Make some info available to the GitHub workflow.
 flyctl status --app "$app" --json >status.json
