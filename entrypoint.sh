@@ -21,7 +21,7 @@ app="${INPUT_NAME:-pr-$PR_NUMBER-$GITHUB_REPOSITORY_OWNER-$GITHUB_REPOSITORY_NAM
 # Change underscores to hyphens.
 app="${app//_/-}"
 app_db="${app}-db"
-app_db="${INPUT_POSTGRES:-${app_db}}"
+# app_db="${INPUT_POSTGRES:-${app_db}}"
 region="${INPUT_REGION:-${FLY_REGION:-ams}}"
 org="${INPUT_ORG:-${FLY_ORG:-personal}}"
 image="$INPUT_IMAGE"
