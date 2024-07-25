@@ -59,7 +59,7 @@ if [ "$EVENT_TYPE" = "closed" ]; then
 fi
 
 # Destroy the app on subsequent retries 
-if [ "$destroy" = "true" ]; then
+if [ "$app_destroy" = "true" ]; then
   echo "[FLYPREVIEWAPP] Destroy flag is set. Destroying resources..."
 
   # destroy the app
