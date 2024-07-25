@@ -74,11 +74,17 @@ if flyctl status --app "$app"; then
   else
     echo "[FLYPREVIEWAPP] $app_db - creating database... "
     flyctl postgres create --name "$app_db" --image-ref "$db_image" --region "$region" --org "$org" --vm-size shared-cpu-1x --initial-cluster-size 1 --volume-size 4
+
+    # remove the DATABASE_URL from the app when a new database is created
+    if flyctl secrets list -a "$app" | grep DATABASE_URL; then
+      echo "[FLYPREVIEWAPP] $app_db - clearing previous secrets on $app..."
+      flyctl secrets unset DATABASE_URL -a "$app"
+    fi
   fi
 fi
 
 # Attach the database if the url is unset
-if fly secrets list -a pro-archer | grep DATABASE_URL; then 
+if flyctl secrets list -a "$app" | grep DATABASE_URL; then 
   echo "[FLYPREVIEWAPP] $app_db - already attached to $app"
 else
   echo "[FLYPREVIEWAPP] $app_db - attaching $db_user to $app"
