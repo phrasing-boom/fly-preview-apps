@@ -127,6 +127,9 @@ else
   flyctl deploy --config "$config" --app "$app" --regions "$region" --image "$image" --remote-only --strategy immediate --ha=$INPUT_HA --vm-cpu-kind "$INPUT_CPUKIND" --vm-cpus $INPUT_CPU --vm-memory "$INPUT_MEMORY"
 fi
 
+# Restart the machine after deploy
+flyctl apps restart --app "$app"
+
 # Make some info available to the GitHub workflow.
 flyctl status --app "$app" --json >status.json
 hostname=$(jq -r .Hostname status.json)
