@@ -22,6 +22,7 @@ app="${INPUT_NAME:-pr-$PR_NUMBER-$GITHUB_REPOSITORY_OWNER-$GITHUB_REPOSITORY_NAM
 app="${app//_/-}"
 app_db="${app}-db"
 # app_db="${INPUT_POSTGRES:-${app_db}}"
+app_destroy="${INPUT_DESTROY:-false}"
 region="${INPUT_REGION:-${FLY_REGION:-ams}}"
 org="${INPUT_ORG:-${FLY_ORG:-personal}}"
 image="$INPUT_IMAGE"
@@ -55,6 +56,19 @@ if [ "$EVENT_TYPE" = "closed" ]; then
     flyctl apps destroy "$app" -y || true
   fi
   exit 0
+fi
+
+# Destroy the app on subsequent retries 
+if [ "$destroy" = "true" ]; then
+  echo "[FLYPREVIEWAPP] Destroy flag is set. Destroying resources..."
+
+  # destroy the app
+  if flyctl status --app "$app"; then
+    echo "[FLYPREVIEWAPP] Destroying $app..."
+    flyctl apps destroy "$app" -y || true
+  else
+    echo "[FLYPREVIEWAPP] No app found to destroy! >:("
+  fi
 fi
 
 # Check if app exists,
