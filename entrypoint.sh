@@ -75,14 +75,19 @@ if flyctl status --app "$app"; then
     echo "[FLYPREVIEWAPP] $app_db - creating database... "
     flyctl postgres create --name "$app_db" --image-ref "$db_image" --region "$region" --org "$org" --vm-size shared-cpu-1x --initial-cluster-size 1 --volume-size 4
   fi
+fi
 
-  # Always attach the build to the new database (this is often redundant)
+# Attach the database if the url is unset
+if fly secrets list -a pro-archer | grep DATABASE_URL; then 
+  echo "[FLYPREVIEWAPP] $app_db - already attached to $app"
+else
+  echo "[FLYPREVIEWAPP] $app_db - attaching $db_user to $app"
   if flyctl postgres attach "$app_db" --app "$app" --database-user "$db_user" --database-name "$app" -y --verbose; then
     echo "[FLYPREVIEWAPP] $app_db - attached $db_user to $app"
   else
     echo "[FLYPREVIEWAPP] $app_db - failure at attach user $db_user to $app!"
   fi
-fi
+fi 
 
 # find a way to determine if the app requires volumes
 # basically, scan the config file if it contains "[mounts]", then create a volume for it
